@@ -1,0 +1,204 @@
+;+------------------------------------------------------------------+
+;| ICT Smart Money EA v4.0 - Settings Template                     |
+;| Optimized parameters for different trading profiles             |
+;+------------------------------------------------------------------+
+
+; === CONSERVATIVE SETTINGS (Small Account $100-$500) ===
+; Suitable for beginners and small accounts
+RiskPercent=1.5
+RR_Ratio=2.0
+RR_Ratio_Alt=1.5
+MinConfidenceScore=90
+HighConfidenceScore=95
+SwingLookback=5
+BOS_Lookback_M5=20
+BOS_Lookback_M15=30
+OB_Lookback=15
+SL_Buffer=30
+RequireFVG=true
+UseLondonKZ=true
+UseNYKZ=true
+TimezoneOffset=0
+MaxTradesPerDay=1
+AllowExtraTrade=false
+EnableBreakEven=true
+EnableTrailing=true
+ShowDashboard=true
+ShowOBZones=true
+ShowBOSLines=true
+ShowSweepMarkers=true
+ShowFVGZones=true
+
+; === MODERATE SETTINGS (Medium Account $500-$2000) ===
+; Balanced approach for intermediate traders
+; RiskPercent=2.0
+; RR_Ratio=2.0
+; RR_Ratio_Alt=1.5
+; MinConfidenceScore=85
+; HighConfidenceScore=90
+; SwingLookback=5
+; BOS_Lookback_M5=20
+; BOS_Lookback_M15=30
+; OB_Lookback=15
+; SL_Buffer=30
+; RequireFVG=true
+; UseLondonKZ=true
+; UseNYKZ=true
+; TimezoneOffset=0
+; MaxTradesPerDay=2
+; AllowExtraTrade=true
+; EnableBreakEven=true
+; EnableTrailing=true
+
+; === AGGRESSIVE SETTINGS (Large Account $2000+) ===
+; For experienced traders with larger accounts
+; RiskPercent=2.5
+; RR_Ratio=1.8
+; RR_Ratio_Alt=1.5
+; MinConfidenceScore=80
+; HighConfidenceScore=88
+; SwingLookback=5
+; BOS_Lookback_M5=25
+; BOS_Lookback_M15=35
+; OB_Lookback=20
+; SL_Buffer=25
+; RequireFVG=false
+; UseLondonKZ=true
+; UseNYKZ=true
+; TimezoneOffset=0
+; MaxTradesPerDay=3
+; AllowExtraTrade=true
+; EnableBreakEven=true
+; EnableTrailing=true
+
+; === SCALPING SETTINGS (High Frequency) ===
+; For scalping during high volatility sessions
+; RiskPercent=1.0
+; RR_Ratio=1.5
+; RR_Ratio_Alt=1.2
+; MinConfidenceScore=75
+; HighConfidenceScore=85
+; SwingLookback=3
+; BOS_Lookback_M5=15
+; BOS_Lookback_M15=25
+; OB_Lookback=10
+; SL_Buffer=20
+; RequireFVG=false
+; UseLondonKZ=true
+; UseNYKZ=true
+; TimezoneOffset=0
+; MaxTradesPerDay=5
+; AllowExtraTrade=true
+; EnableBreakEven=true
+; EnableTrailing=false
+
+; === SWING TRADING SETTINGS (Lower Frequency) ===
+; For swing trading with higher timeframes
+; RiskPercent=3.0
+; RR_Ratio=3.0
+; RR_Ratio_Alt=2.5
+; MinConfidenceScore=95
+; HighConfidenceScore=98
+; SwingLookback=8
+; BOS_Lookback_M5=30
+; BOS_Lookback_M15=50
+; OB_Lookback=25
+; SL_Buffer=50
+; RequireFVG=true
+; UseLondonKZ=true
+; UseNYKZ=true
+; TimezoneOffset=0
+; MaxTradesPerDay=1
+; AllowExtraTrade=false
+; EnableBreakEven=true
+; EnableTrailing=true
+
+;+------------------------------------------------------------------+
+;| Symbol-Specific Optimizations                                   |
+;+------------------------------------------------------------------+
+
+; === EURUSD Optimized ===
+; Best performance on EURUSD
+; MinConfidenceScore=85
+; SL_Buffer=25
+; RequireFVG=true
+
+; === GBPUSD Optimized ===
+; Higher volatility pair
+; MinConfidenceScore=88
+; SL_Buffer=35
+; RiskPercent=1.8
+
+; === USDJPY Optimized ===
+; Asian session consideration
+; MinConfidenceScore=87
+; SL_Buffer=30
+; UseLondonKZ=true
+; UseNYKZ=false
+
+; === GOLD (XAUUSD) Optimized ===
+; High volatility commodity
+; RiskPercent=1.5
+; MinConfidenceScore=90
+; SL_Buffer=50
+; RR_Ratio=2.5
+
+;+------------------------------------------------------------------+
+;| Timezone Offset Examples                                        |
+;+------------------------------------------------------------------+
+
+; GMT+0 (London): TimezoneOffset=0
+; GMT+1 (Central Europe): TimezoneOffset=1
+; GMT+2 (Eastern Europe): TimezoneOffset=2
+; GMT+3 (Moscow): TimezoneOffset=3
+; GMT+7 (Bangkok): TimezoneOffset=7
+; GMT+8 (Singapore): TimezoneOffset=8
+; GMT+9 (Tokyo): TimezoneOffset=9
+; GMT-5 (New York): TimezoneOffset=-5
+; GMT-8 (Los Angeles): TimezoneOffset=-8
+
+;+------------------------------------------------------------------+
+;| Notes and Recommendations                                       |
+;+------------------------------------------------------------------+
+
+; 1. Start with CONSERVATIVE settings for new users
+; 2. Test on demo account for at least 1 month
+; 3. Adjust MinConfidenceScore based on backtest results
+; 4. Monitor daily drawdown and adjust RiskPercent accordingly
+; 5. Use different settings for different market conditions
+; 6. Keep detailed trading journal for optimization
+; 7. Consider broker spread when setting SL_Buffer
+; 8. Adjust TimezoneOffset according to your broker's server time
+
+;+------------------------------------------------------------------+
+;| Backtest Recommendations                                        |
+;+------------------------------------------------------------------+
+
+; Period: 6-12 months of historical data
+; Timeframe: M5 (for chart display)
+; Spread: Use realistic spread (2-3 pips for majors)
+; Execution: Use "Every tick based on real ticks"
+; Initial Deposit: $1000 (for realistic lot sizing)
+; Leverage: 1:100 or 1:500
+
+;+------------------------------------------------------------------+
+;| Performance Targets                                             |
+;+------------------------------------------------------------------+
+
+; Conservative Profile:
+; - Monthly Return: 5-10%
+; - Maximum Drawdown: <15%
+; - Win Rate: >60%
+; - Profit Factor: >1.5
+
+; Moderate Profile:
+; - Monthly Return: 8-15%
+; - Maximum Drawdown: <20%
+; - Win Rate: >55%
+; - Profit Factor: >1.3
+
+; Aggressive Profile:
+; - Monthly Return: 12-25%
+; - Maximum Drawdown: <25%
+; - Win Rate: >50%
+; - Profit Factor: >1.2 
