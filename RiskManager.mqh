@@ -36,15 +36,31 @@ double CalculateLot(double riskPercent, int slPoints, string symbol) {
     return NormalizeDouble(lotSize, 2);
 }
 
+// Global variables for trade counting
+static int g_tradeCountToday = 0;
+static datetime g_lastTradeDate = 0;
+
 bool CheckTradeLimit(int maxTradesPerDay) {
-    static int tradeCountToday = 0;
-    static datetime lastTradeTime = 0;
-    MqlDateTime lastTrade, current;
-    TimeToStruct(lastTradeTime, lastTrade);
-    TimeToStruct(TimeLocal(), current);
-    if (lastTrade.day != current.day || lastTrade.mon != current.mon || lastTrade.year != current.year)
-        tradeCountToday = 0;
-    return (tradeCountToday < maxTradesPerDay);
+    // Get current date
+    datetime currentTime = TimeLocal();
+    MqlDateTime current;
+    TimeToStruct(currentTime, current);
+    
+    // Reset counter if new day
+    MqlDateTime lastDate;
+    TimeToStruct(g_lastTradeDate, lastDate);
+    if (lastDate.day != current.day || lastDate.mon != current.mon || lastDate.year != current.year) {
+        g_tradeCountToday = 0;
+        g_lastTradeDate = currentTime;
+        Print("[DEBUG] Trade count reset for new day. Current count: ", g_tradeCountToday);
+    }
+    
+    return (g_tradeCountToday < maxTradesPerDay);
+}
+
+void IncrementTradeCount() {
+    g_tradeCountToday++;
+    Print("[DEBUG] Trade count incremented to: ", g_tradeCountToday);
 }
 
 #endif // __RISK_MANAGER_MQH__ 

@@ -8,6 +8,14 @@ void PlaceEntryOrder(SymbolStatus &status, double lot, ENUM_TIMEFRAMES tf, int s
     CTrade trade;
     double entry, sl, tp;
     
+    // Validate lot size
+    double minLot = SymbolInfoDouble(status.symbol, SYMBOL_VOLUME_MIN);
+    double maxLot = SymbolInfoDouble(status.symbol, SYMBOL_VOLUME_MAX);
+    if(lot < minLot || lot > maxLot) {
+        Print("[ERROR] Invalid lot size: ", lot, " (Min: ", minLot, ", Max: ", maxLot, ")");
+        return;
+    }
+    
     // ใช้ M5 BOS direction สำหรับ entry
     if(status.isBullishBOS_M5) {
         // Bullish M5 BOS = Buy Order
@@ -21,12 +29,24 @@ void PlaceEntryOrder(SymbolStatus &status, double lot, ENUM_TIMEFRAMES tf, int s
         // TP: RR 1:2 หรือ target ถัดไป
         tp = entry + (entry - sl) * 2;
         
+        // Validate SL and TP distances
+        double minStopLevel = SymbolInfoInteger(status.symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+        if((entry - sl) < minStopLevel) {
+            Print("[ERROR] SL too close to entry. Required: ", minStopLevel / _Point, " points");
+            return;
+        }
+        if((tp - entry) < minStopLevel) {
+            Print("[ERROR] TP too close to entry. Required: ", minStopLevel / _Point, " points");
+            return;
+        }
+        
         bool result = trade.Buy(lot, status.symbol, entry, sl, tp, "ICT_M5_Buy");
         if(result) {
             Print("[TRADE] BUY order placed - Entry:", entry, " SL:", sl, " TP:", tp);
             Print("SL Distance: ", (entry - sl) / _Point, " points");
         } else {
             Print("[ERROR] Buy order failed. Error: ", GetLastError());
+            Print("[ERROR] Entry: ", entry, " SL: ", sl, " TP: ", tp, " Lot: ", lot);
         }
     } else {
         // Bearish M5 BOS = Sell Order  
@@ -40,12 +60,24 @@ void PlaceEntryOrder(SymbolStatus &status, double lot, ENUM_TIMEFRAMES tf, int s
         // TP: RR 1:2 หรือ target ถัดไป
         tp = entry - (sl - entry) * 2;
         
+        // Validate SL and TP distances
+        double minStopLevel = SymbolInfoInteger(status.symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+        if((sl - entry) < minStopLevel) {
+            Print("[ERROR] SL too close to entry. Required: ", minStopLevel / _Point, " points");
+            return;
+        }
+        if((entry - tp) < minStopLevel) {
+            Print("[ERROR] TP too close to entry. Required: ", minStopLevel / _Point, " points");
+            return;
+        }
+        
         bool result = trade.Sell(lot, status.symbol, entry, sl, tp, "ICT_M5_Sell");
         if(result) {
             Print("[TRADE] SELL order placed - Entry:", entry, " SL:", sl, " TP:", tp);
             Print("SL Distance: ", (sl - entry) / _Point, " points");
         } else {
             Print("[ERROR] Sell order failed. Error: ", GetLastError());
+            Print("[ERROR] Entry: ", entry, " SL: ", sl, " TP: ", tp, " Lot: ", lot);
         }
     }
 }
@@ -108,12 +140,12 @@ void ManageOpenTrades(int trailStartPips = 200, int trailStepPips = 50, int brea
             if(profitPips >= 300 && volume > 0.01) { // 300 pips = 1:1 RR
                 double closeVolume = NormalizeDouble(volume * 0.5, 2);
                 if(closeVolume >= SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN)) {
-                    if(posType == POSITION_TYPE_BUY) {
-                        trade.Sell(closeVolume, symbol, 0, 0, 0, "Partial_Close_Buy");
+                    bool result = trade.PositionClosePartial(ticket, closeVolume);
+                    if(result) {
+                        Print("[TRADE MGT] Partial close 50% successful for ticket: ", ticket);
                     } else {
-                        trade.Buy(closeVolume, symbol, 0, 0, 0, "Partial_Close_Sell");
+                        Print("[ERROR] Partial close failed for ticket: ", ticket, " Error: ", GetLastError());
                     }
-                    Print("[TRADE MGT] Partial close 50% for ticket: ", ticket);
                 }
             }
         }

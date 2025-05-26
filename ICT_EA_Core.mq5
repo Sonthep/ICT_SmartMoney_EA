@@ -3,7 +3,7 @@
 #property strict
 
 #include <Trade\Trade.mqh>
-#include "SessionUtils.mqh"
+#include "SimpleSession.mqh"
 #include "RiskManager.mqh"
 #include "OB_BOS_Scan.mqh"
 #include "TradeManager.mqh"
@@ -15,14 +15,14 @@ input int BOS_Lookback = 10; // จำนวนแท่งย้อนหลั
 input int OB_Buffer_Points = 30; // Buffer สำหรับ SL (3 pips)
 input int MaxTradesPerDay = 2; // จำกัดจำนวนเทรดต่อวัน
 
-// Session Parameters
-input string London_KZ = "08:00–17:00";
-input string NY_KZ = "09:30–16:00";
-input int GMT_Offset = 0; // ปรับชดเชยเวลา
+// Session Parameters (now using simple GMT-based sessions)
+// London: 08:00-17:00 GMT, NY: 13:00-22:00 GMT
+input int GMT_Offset = 0; // ปรับชดเชยเวลา (ไม่ใช้แล้ว)
 
 // Optional Features
 input bool EnableTradeManagement = true; // เปิดใช้ Break Even + Trailing
 input bool ShowStats = true; // แสดงสถิติบนชาร์ต
+input bool IgnoreSessionFilter = true; // สำหรับการทดสอบ - ข้าม session filter
 
 // Global Statistics Variables
 int totalTrades = 0;
@@ -34,8 +34,9 @@ double maxDrawdown = 0;
 double peakBalance = 0;
 
 int OnInit() {
-    DrawSessionBox("LondonKZ", London_KZ, clrBlue, "London");
-    DrawSessionBox("NYKZ", NY_KZ, clrRed, "NY");
+    // Disable session box drawing to avoid string parsing errors
+    // DrawSessionBox("LondonKZ", London_KZ, clrBlue, "London");
+    // DrawSessionBox("NYKZ", NY_KZ, clrRed, "NY");
     
     // Initialize statistics
     peakBalance = AccountInfoDouble(ACCOUNT_BALANCE);
@@ -93,9 +94,18 @@ void UpdateStats() {
     double avgLoss = (lossTrades > 0) ? totalLoss / lossTrades : 0;
     double profitFactor = (totalLoss != 0) ? totalProfit / MathAbs(totalLoss) : 0;
     
+    string sessionStatus = "";
+    if(IgnoreSessionFilter) {
+        sessionStatus = "Session: DISABLED";
+    } else {
+        sessionStatus = StringFormat("Session: %s", 
+            InAnyTradingSession() ? "ACTIVE" : "CLOSED");
+    }
+    
     string statsText = StringFormat(
         "ICT EA Statistics\n" +
         "─────────────────\n" +
+        "%s\n" +
         "Total Trades: %d\n" +
         "Win Rate: %.1f%%\n" +
         "Wins: %d | Loss: %d\n" +
@@ -104,7 +114,7 @@ void UpdateStats() {
         "Profit Factor: %.2f\n" +
         "Max DD: %.2f%%\n" +
         "Risk: %.1f%% per trade",
-        totalTrades, winRate, winTrades, lossTrades,
+        sessionStatus, totalTrades, winRate, winTrades, lossTrades,
         avgWin, avgLoss, profitFactor, maxDrawdown, RiskPercent
     );
     
@@ -117,13 +127,32 @@ void OnTick() {
     
     // เช็คว่า position ถูกปิดแล้วหรือไม่
     static int lastPositionCount = 0;
+    static double lastAccountBalance = 0;
     int currentPositionCount = PositionsTotal();
+    double currentBalance = AccountInfoDouble(ACCOUNT_BALANCE);
     
+    // Track closed positions and update statistics
     if(lastPositionCount > 0 && currentPositionCount == 0) {
-        // Position ถูกปิดแล้ว - รีเซ็ต signal tracking
+        // Position ถูกปิดแล้ว - อัพเดทสถิติ
+        double profit = currentBalance - lastAccountBalance;
+        if(profit > 0) {
+            winTrades++;
+            totalProfit += profit;
+        } else if(profit < 0) {
+            lossTrades++;
+            totalLoss += profit;
+        }
+        
+        // รีเซ็ต signal tracking
         ResetSignalTracking();
-        Print("[DEBUG] All positions closed - signal tracking reset");
+        Print("[DEBUG] Position closed - Profit: ", profit, " Win/Loss: ", winTrades, "/", lossTrades);
     }
+    
+    // Update balance tracking
+    if(currentPositionCount == 0) {
+        lastAccountBalance = currentBalance;
+    }
+    
     lastPositionCount = currentPositionCount;
     
     // Simple Trade Management (Break Even + Trailing)
@@ -141,14 +170,46 @@ void OnTick() {
         return;
     }
     
-    // Session filter (always active - no override)
-    if(!InAnySession(London_KZ, NY_KZ, GMT_Offset, _Symbol)) {
-        return;
+    // Session filter (can be disabled for testing)
+    if(!IgnoreSessionFilter) {
+        bool inSession = InAnyTradingSession();
+        if(!inSession) {
+            static datetime lastSessionDebug = 0;
+            if(TimeCurrent() - lastSessionDebug > 300) { // Debug every 5 minutes
+                PrintSessionInfo();
+                lastSessionDebug = TimeCurrent();
+            }
+            return;
+        } else {
+            static bool sessionStartLogged = false;
+            if(!sessionStartLogged) {
+                Print("[DEBUG] Trading session ACTIVE. Starting analysis...");
+                PrintSessionInfo();
+                sessionStartLogged = true;
+            }
+        }
+    } else {
+        static datetime lastIgnoreDebug = 0;
+        if(TimeCurrent() - lastIgnoreDebug > 300) { // Debug every 5 minutes
+            Print("[DEBUG] Session filter DISABLED for testing");
+            PrintSessionInfo();
+            lastIgnoreDebug = TimeCurrent();
+        }
     }
 
     SymbolStatus status;
     status.symbol = _Symbol;
     ScanSymbol(status, PERIOD_M15, BOS_Lookback, GMT_Offset); // Fixed M15 timeframe
+    
+    // Debug basic status
+    static datetime lastBasicDebug = 0;
+    if(TimeCurrent() - lastBasicDebug > 60) { // Every minute
+        Print("[MAIN DEBUG] Time: ", TimeToString(TimeCurrent()));
+        Print("[MAIN DEBUG] M15 - BOS: ", status.hasBOS_M15, " Sweep: ", status.hasSweep_M15);
+        Print("[MAIN DEBUG] M5 - BOS: ", status.hasBOS_M5, " Sweep: ", status.hasSweep_M5);
+        Print("[MAIN DEBUG] Can Entry: ", status.canEntry, " Positions: ", PositionsTotal());
+        lastBasicDebug = TimeCurrent();
+    }
     
     // Debug info
     if(status.hasSweep_M15 || status.hasOB_M15 || status.hasBOS_M15 || status.hasSweep_M5 || status.hasOB_M5 || status.hasBOS_M5) {
@@ -227,14 +288,21 @@ void OnTick() {
     }
     
     if(status.canEntry) {
+        Print("🚀 [ENTRY SIGNAL] 🚀");
+        Print("M15 Filter: BOS=", status.hasBOS_M15, " Sweep=", status.hasSweep_M15);
+        Print("M5 Trigger: BOS=", status.hasBOS_M5, " Sweep=", status.hasSweep_M5);
+        Print("Direction: ", status.isBullishBOS_M5 ? "BUY" : "SELL");
+        
         double lot = CalculateLot(RiskPercent, 300, status.symbol); // Fixed SL points for lot calculation
         Print("[ENTRY] Placing order with lot:", lot, " at time:", TimeToString(status.lastSignalTime));
         PlaceEntryOrder(status, lot, PERIOD_M5, 300, 600, OB_Buffer_Points); // Fixed values
         
-        // Update trade statistics
+        // Update trade statistics and increment trade count
         totalTrades++;
+        IncrementTradeCount(); // Add this function call
     }
     
-    DrawSessionText("LondonKZ", London_KZ, clrBlue, "London");
-    DrawSessionText("NYKZ", NY_KZ, clrRed, "NY");
+    // Disable session drawing to avoid string parsing errors
+    // DrawSessionText("LondonKZ", London_KZ, clrBlue, "London");
+    // DrawSessionText("NYKZ", NY_KZ, clrRed, "NY");
 } 

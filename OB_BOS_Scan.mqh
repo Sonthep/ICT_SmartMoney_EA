@@ -1,7 +1,7 @@
 #ifndef __OB_BOS_SCAN_MQH__
 #define __OB_BOS_SCAN_MQH__
 
-#include "SessionUtils.mqh"
+#include "SimpleSession.mqh"
 
 struct SymbolStatus {
     string symbol;
@@ -36,8 +36,8 @@ static datetime lastProcessedTime_M5 = 0;
 static bool m15FilterPassed = false;
 
 void ScanSymbol(SymbolStatus &status, ENUM_TIMEFRAMES tf, int bosLookback, int gmtOffset) {
-    status.inLondon = InKillzone("14:00-17:00", gmtOffset, status.symbol);
-    status.inNY     = InKillzone("19:30-23:00", gmtOffset, status.symbol);
+    status.inLondon = InLondonKillzone();
+    status.inNY     = InNYKillzone();
     
     // Step 1: Analyze M15 for Filter
     AnalyzeM15Filter(status, bosLookback);
